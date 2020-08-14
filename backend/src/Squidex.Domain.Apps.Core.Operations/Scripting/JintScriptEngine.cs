@@ -93,11 +93,18 @@ namespace Squidex.Domain.Apps.Core.Scripting
                     {
                         var dataInstance = context.Engine.GetValue("ctx").AsObject().Get("data");
 
-                        if (dataInstance != null && dataInstance.IsObject())
+                        if (dataInstance != null && dataInstance.IsObject() && dataInstance.AsObject() is ContentDataObject data)
                         {
                             if (!tcs.Task.IsCompleted)
                             {
-                                tcs.TrySetResult(vars.Data!);
+                                if (data.TryUpdate(out var modified))
+                                {
+                                    tcs.TrySetResult(modified);
+                                }
+                                else
+                                {
+                                    tcs.TrySetResult(vars.Data!);
+                                }
                             }
                         }
                     }));
