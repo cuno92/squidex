@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Esprima;
 using Jint;
 using Jint.Native;
+using Jint.Native.Object;
 using Jint.Runtime;
 using Microsoft.Extensions.Caching.Memory;
 using Squidex.Domain.Apps.Core.Contents;
@@ -92,18 +93,11 @@ namespace Squidex.Domain.Apps.Core.Scripting
                     {
                         var dataInstance = context.Engine.GetValue("ctx").AsObject().Get("data");
 
-                        if (dataInstance != null && dataInstance.IsObject() && dataInstance.AsObject() is ContentDataObject data)
+                        if (dataInstance != null && dataInstance.IsObject())
                         {
                             if (!tcs.Task.IsCompleted)
                             {
-                                if (data.TryUpdate(out var modified))
-                                {
-                                    tcs.TrySetResult(modified);
-                                }
-                                else
-                                {
-                                    tcs.TrySetResult(vars.Data!);
-                                }
+                                tcs.TrySetResult(vars.Data!);
                             }
                         }
                     }));

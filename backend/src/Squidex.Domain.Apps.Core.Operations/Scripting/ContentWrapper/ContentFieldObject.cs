@@ -6,6 +6,8 @@
 // ==========================================================================
 
 using System.Collections.Generic;
+using Jint;
+using Jint.Native;
 using Jint.Native.Object;
 using Jint.Runtime.Descriptors;
 using Squidex.Domain.Apps.Core.Contents;
@@ -19,8 +21,8 @@ namespace Squidex.Domain.Apps.Core.Scripting.ContentWrapper
     {
         private readonly ContentDataObject contentData;
         private readonly ContentFieldData? fieldData;
-        private HashSet<string> valuesToDelete;
-        private Dictionary<string, PropertyDescriptor> valueProperties;
+        private HashSet<JsValue> valuesToDelete;
+        private Dictionary<JsValue, PropertyDescriptor> valueProperties;
         private bool isChanged;
 
         public ContentFieldData? FieldData
@@ -31,8 +33,6 @@ namespace Squidex.Domain.Apps.Core.Scripting.ContentWrapper
         public ContentFieldObject(ContentDataObject contentData, ContentFieldData? fieldData, bool isNew)
             : base(contentData.Engine)
         {
-            Extensible = true;
-
             this.contentData = contentData;
             this.fieldData = fieldData;
 
@@ -59,7 +59,7 @@ namespace Squidex.Domain.Apps.Core.Scripting.ContentWrapper
                 {
                     foreach (var field in valuesToDelete)
                     {
-                        fieldData.Remove(field);
+                        fieldData.Remove(field.AsString());
                     }
                 }
 
@@ -71,7 +71,7 @@ namespace Squidex.Domain.Apps.Core.Scripting.ContentWrapper
 
                         if (value.IsChanged)
                         {
-                            fieldData[key] = value.ContentValue;
+                            fieldData[key.AsString()] = value.ContentValue;
                         }
                     }
                 }
@@ -80,36 +80,36 @@ namespace Squidex.Domain.Apps.Core.Scripting.ContentWrapper
             return isChanged;
         }
 
-        public override void RemoveOwnProperty(string propertyName)
+        public override void RemoveOwnProperty(JsValue property)
         {
-            valuesToDelete ??= new HashSet<string>();
-            valuesToDelete.Add(propertyName);
+            valuesToDelete ??= new HashSet<JsValue>();
+            valuesToDelete.Add(property);
 
-            valueProperties?.Remove(propertyName);
+            valueProperties?.Remove(property);
 
             MarkChanged();
         }
 
-        public override bool DefineOwnProperty(string propertyName, PropertyDescriptor desc, bool throwOnError)
+        public override bool DefineOwnProperty(JsValue property, PropertyDescriptor desc)
         {
             EnsurePropertiesInitialized();
 
-            if (!valueProperties.ContainsKey(propertyName))
+            if (!valueProperties.ContainsKey(property))
             {
-                valueProperties[propertyName] = new ContentFieldProperty(this) { Value = desc.Value };
+                valueProperties[property] = new ContentFieldProperty(this) { Value = desc.Value };
             }
 
             return true;
         }
 
-        public override PropertyDescriptor GetOwnProperty(string propertyName)
+        public override PropertyDescriptor GetOwnProperty(JsValue property)
         {
             EnsurePropertiesInitialized();
 
-            return valueProperties?.GetOrDefault(propertyName) ?? PropertyDescriptor.Undefined;
+            return valueProperties?.GetOrDefault(property) ?? PropertyDescriptor.Undefined;
         }
 
-        public override IEnumerable<KeyValuePair<string, PropertyDescriptor>> GetOwnProperties()
+        public override IEnumerable<KeyValuePair<JsValue, PropertyDescriptor>> GetOwnProperties()
         {
             EnsurePropertiesInitialized();
 
@@ -120,7 +120,7 @@ namespace Squidex.Domain.Apps.Core.Scripting.ContentWrapper
         {
             if (valueProperties == null)
             {
-                valueProperties = new Dictionary<string, PropertyDescriptor>(fieldData?.Count ?? 0);
+                valueProperties = new Dictionary<JsValue, PropertyDescriptor>(fieldData?.Count ?? 0);
 
                 if (fieldData != null)
                 {

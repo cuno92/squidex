@@ -10,6 +10,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using Jint;
 using Jint.Native;
+using Jint.Native.Object;
 using Jint.Runtime.Interop;
 using NodaTime;
 using Squidex.Domain.Apps.Core.Contents;

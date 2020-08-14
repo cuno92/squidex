@@ -8,6 +8,7 @@
 using System;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Jint;
 using Jint.Native;
 using Jint.Native.Json;
 using Jint.Runtime;
@@ -58,7 +59,7 @@ namespace Squidex.Domain.Apps.Core.Scripting.Extensions
 
                     var responseObject = await ParseResponse(context, response);
 
-                    context.Engine.ResetTimeoutTicks();
+                    context.Engine.ResetCallStack();
 
                     callback(responseObject);
                 }
@@ -85,10 +86,10 @@ namespace Squidex.Domain.Apps.Core.Scripting.Extensions
                 foreach (var (key, property) in obj.GetOwnProperties())
                 {
                     var value = TypeConverter.ToString(property.Value);
-
-                    if (!string.IsNullOrWhiteSpace(key))
+                    var propertyName = key.AsString();
+                    if (!string.IsNullOrWhiteSpace(propertyName))
                     {
-                        request.Headers.TryAddWithoutValidation(key, value ?? string.Empty);
+                        request.Headers.TryAddWithoutValidation(propertyName, value ?? string.Empty);
                     }
                 }
             }

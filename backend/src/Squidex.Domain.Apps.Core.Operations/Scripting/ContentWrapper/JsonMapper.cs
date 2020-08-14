@@ -103,7 +103,7 @@ namespace Squidex.Domain.Apps.Core.Scripting.ContentWrapper
 
                 var result = JsonValue.Array();
 
-                for (var i = 0; i < arr.GetLength(); i++)
+                for (var i = 0; i < arr.Length; i++)
                 {
                     result.Add(Map(arr.Get(i.ToString())));
                 }
@@ -119,7 +119,7 @@ namespace Squidex.Domain.Apps.Core.Scripting.ContentWrapper
 
                 foreach (var (key, propertyDescriptor) in obj.GetOwnProperties())
                 {
-                    result[key] = Map(propertyDescriptor.Value);
+                    result[key.AsString()] = Map(propertyDescriptor.Value);
                 }
 
                 return result;

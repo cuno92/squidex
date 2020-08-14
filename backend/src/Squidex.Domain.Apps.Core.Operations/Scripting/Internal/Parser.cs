@@ -30,15 +30,15 @@ namespace Squidex.Domain.Apps.Core.Scripting.Internal
             this.memoryCache = memoryCache;
         }
 
-        public Program Parse(string script)
+        public Script Parse(string script)
         {
             var key = Key(script);
 
-            if (!memoryCache.TryGetValue<Program>(key, out var program))
+            if (!memoryCache.TryGetValue<Script>(key, out var program))
             {
                 var parser = new JavaScriptParser(script, DefaultParserOptions);
 
-                program = parser.ParseProgram();
+                program = parser.ParseScript();
 
                 memoryCache.Set(key, program, Expiration);
             }

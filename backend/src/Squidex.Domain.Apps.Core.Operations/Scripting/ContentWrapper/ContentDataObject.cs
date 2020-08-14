@@ -20,15 +20,13 @@ namespace Squidex.Domain.Apps.Core.Scripting.ContentWrapper
     public sealed class ContentDataObject : ObjectInstance
     {
         private readonly NamedContentData contentData;
-        private HashSet<string> fieldsToDelete;
-        private Dictionary<string, PropertyDescriptor> fieldProperties;
+        private HashSet<JsValue> fieldsToDelete;
+        private Dictionary<JsValue, PropertyDescriptor> fieldProperties;
         private bool isChanged;
 
         public ContentDataObject(Engine engine, NamedContentData contentData)
             : base(engine)
         {
-            Extensible = true;
-
             this.contentData = contentData;
         }
 
@@ -47,7 +45,7 @@ namespace Squidex.Domain.Apps.Core.Scripting.ContentWrapper
                 {
                     foreach (var field in fieldsToDelete)
                     {
-                        contentData.Remove(field);
+                        contentData.Remove(field.AsString());
                     }
                 }
 
@@ -59,7 +57,7 @@ namespace Squidex.Domain.Apps.Core.Scripting.ContentWrapper
 
                         if (value.ContentField != null && value.ContentField.TryUpdate(out var fieldData))
                         {
-                            contentData[key] = fieldData;
+                            contentData[key.AsString()] = fieldData;
                         }
                     }
                 }
@@ -68,46 +66,39 @@ namespace Squidex.Domain.Apps.Core.Scripting.ContentWrapper
             return isChanged;
         }
 
-        public override void RemoveOwnProperty(string propertyName)
+        public override void RemoveOwnProperty(JsValue property)
         {
             if (fieldsToDelete == null)
             {
-                fieldsToDelete = new HashSet<string>();
+                fieldsToDelete = new HashSet<JsValue>();
             }
 
-            fieldsToDelete.Add(propertyName);
-            fieldProperties?.Remove(propertyName);
+            fieldsToDelete.Add(property);
+            fieldProperties?.Remove(property);
 
             MarkChanged();
         }
 
-        public override bool DefineOwnProperty(string propertyName, PropertyDescriptor desc, bool throwOnError)
+        public override bool DefineOwnProperty(JsValue property, PropertyDescriptor desc)
         {
             EnsurePropertiesInitialized();
 
-            if (!fieldProperties.ContainsKey(propertyName))
+            if (!fieldProperties.ContainsKey(property))
             {
-                fieldProperties[propertyName] = new ContentDataProperty(this) { Value = desc.Value };
+                fieldProperties[property] = new ContentDataProperty(this) { Value = desc.Value };
             }
 
             return true;
         }
 
-        public override void Put(string propertyName, JsValue value, bool throwOnError)
+        public override PropertyDescriptor GetOwnProperty(JsValue property)
         {
             EnsurePropertiesInitialized();
 
-            fieldProperties.GetOrAdd(propertyName, this, (k, c) => new ContentDataProperty(c)).Value = value;
+            return fieldProperties.GetOrAdd(property, this, (k, c) => new ContentDataProperty(c, new ContentFieldObject(c, new ContentFieldData(), false)));
         }
 
-        public override PropertyDescriptor GetOwnProperty(string propertyName)
-        {
-            EnsurePropertiesInitialized();
-
-            return fieldProperties.GetOrAdd(propertyName, this, (k, c) => new ContentDataProperty(c, new ContentFieldObject(c, new ContentFieldData(), false)));
-        }
-
-        public override IEnumerable<KeyValuePair<string, PropertyDescriptor>> GetOwnProperties()
+        public override IEnumerable<KeyValuePair<JsValue, PropertyDescriptor>> GetOwnProperties()
         {
             EnsurePropertiesInitialized();
 
@@ -118,7 +109,7 @@ namespace Squidex.Domain.Apps.Core.Scripting.ContentWrapper
         {
             if (fieldProperties == null)
             {
-                fieldProperties = new Dictionary<string, PropertyDescriptor>(contentData.Count);
+                fieldProperties = new Dictionary<JsValue, PropertyDescriptor>(contentData.Count);
 
                 foreach (var (key, value) in contentData)
                 {
